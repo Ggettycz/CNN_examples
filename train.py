@@ -7,8 +7,11 @@ os.environ["KERAS_BACKEND"] = "tensorflow"
 # has been configured. The backend cannot be changed once the
 # package is imported.
 import tensorflow.keras as keras
+from datetime import datetime
 
-directory = 'images/d2'
+#directory = 'images/d2'
+directory = 'data'
+
 image_size=(100, 100)
 batch_size = 50
 # Load the data and split it between train and test sets
@@ -39,7 +42,9 @@ input_shape = (image_size[0], image_size[1], 3)
 model = keras.Sequential(
     [
         keras.layers.Input(shape=input_shape),
-        keras.layers.Conv2D(64, kernel_size=(3, 3), activation="relu"),
+        #keras.layers.Conv2D(64, kernel_size=(3, 3), activation="relu"),
+        #v.1. zvetsen kernel (zvetsi pocet parametru z 1792 ->4864) a pridan padding
+        keras.layers.Conv2D(64, kernel_size=(5, 5), padding='same', activation="relu"), 
         keras.layers.Conv2D(64, kernel_size=(3, 3), activation="relu"),
         keras.layers.MaxPooling2D(pool_size=(2, 2)),
         keras.layers.Conv2D(128, kernel_size=(3, 3), activation="relu"),
@@ -52,7 +57,6 @@ model = keras.Sequential(
 
 #informace o modelu
 model.summary()
-
 model.compile(
     loss=keras.losses.SparseCategoricalCrossentropy(),
     optimizer=keras.optimizers.Adam(learning_rate=1e-3),
@@ -61,12 +65,16 @@ model.compile(
     ],
 )
 
-epochs = 5
+epochs = 10
 
 callbacks = [
     keras.callbacks.ModelCheckpoint(filepath="model_at_epoch_{epoch}.keras"),
-    keras.callbacks.EarlyStopping(monitor="val_loss", patience=2),
+    # updated monitor from val_loss to loss
+    keras.callbacks.EarlyStopping(monitor="loss", patience=2),
 ]
+
+train_start = datetime.now()
+print("Starting train at::", train_start)
 
 model.fit(
     train_ds,
@@ -75,10 +83,12 @@ model.fit(
     #validation_split=0.2,
     callbacks=callbacks,
 )
+train_end = datetime.now()
 
 model.save("final_model.keras")
 
-sys.exit(1)
+print("Ending train at::", train_start, (train_end - train_start))
+
 score = model.evaluate(x_test, y_test, verbose=0)
 
 model.save("final_model.keras")
